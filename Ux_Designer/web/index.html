@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI UX Designer · Power BI</title>
+  <meta name="description" content="Power BI şablonunuzun görsel tasarımını yerel Qwen modeliyle iyileştirin.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <header class="topbar"><div class="brand"><span class="brandmark" aria-hidden="true">ux</span><span>AI UX Designer<span class="brand-divider">/</span><span class="brand-context">Power BI</span></span></div><span class="local-label">Yerel çalışma alanı</span></header>
+  <main>
+    <div class="page-top"><div><p class="eyebrow">TASARIM STÜDYOSU</p><h1>Raporunuza yeni bir bakış.</h1><p class="intro">Anlamlı grafik seçimleri, yeni bir yerleşim ve premium bir tasarım.</p></div><div id="model-badge" class="model-badge"><span class="status-dot"></span><span id="model-status">Qwen kontrol ediliyor</span></div></div>
+    <ol class="stepper" aria-label="Tasarım adımları"><li class="active" id="step-upload" aria-current="step"><span>01</span> Şablonu ve modu seçin</li><li id="step-design"><span>02</span> Tasarım uygulansın</li><li id="step-ready"><span>03</span> Yeni şablonu indirin</li></ol>
+    <div class="workspace">
+      <section class="work-panel" aria-labelledby="panel-title">
+        <div class="panel-heading"><h2 id="panel-title">Power BI şablonunuz</h2><span class="filetype">.PBIT</span></div>
+        <div id="upload-state">
+          <fieldset class="mode-picker" aria-label="Tasarım modu"><legend>Tasarım modu</legend>
+            <label class="mode-card selected"><input type="radio" name="design-mode" value="improve" checked><span class="mode-number">01</span><span><strong>Görselleştirmeyi iyileştir</strong><small>Her görselin kolon ve ölçüleri korunur; grafik türü, yerleşim, renk, tipografi, arka plan ve kenarlıklar yenilenir.</small></span></label>
+            <label class="mode-card"><input type="radio" name="design-mode" value="blank"><span class="mode-number">02</span><span><strong>Sıfırdan Tasarım Uygula</strong><small>Veri modelindeki alanlardan, mantık çerçevesinde serbestçe seçilen görsellerle raporu baştan kurar.</small></span></label>
+            <label class="mode-card"><input type="radio" name="design-mode" value="reference"><span class="mode-number">03</span><span><strong>Resme Uygun Görsel Tasarım</strong><small>PNG örneğinin renklerini ve sayfa kompozisyonunu (başlık bandı, KPI satırı, grafik ızgarası) raporunuza uygular.</small></span></label>
+          </fieldset>
+          <label class="dropzone" id="dropzone" for="file-input">
+            <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></svg></span>
+            <strong>.pbit dosyasını yükleyin</strong><span>Sürükleyip bırakın veya <span class="text-link">dosya seçin</span></span><small>Power BI şablonu · En fazla 50 MB</small>
+            <input id="file-input" type="file" accept=".pbit" aria-label="Power BI şablonu seçin">
+          </label>
+          <div id="reference-upload" class="reference-upload" hidden>
+            <label for="reference-input"><span>PNG referans görseli</span><small>Dashboard ekran görüntünüzü yükleyin. En fazla 12 MB.</small><input id="reference-input" type="file" accept="image/png"></label>
+            <div id="selected-reference" class="selected-file" hidden><span class="image-icon" aria-hidden="true">▧</span><div><strong id="reference-name"></strong><small id="reference-size"></small></div><button id="remove-reference" class="icon-button" aria-label="Referans görseli kaldır">×</button></div>
+          </div>
+          <div id="selected-file" class="selected-file" hidden><span class="file-icon" aria-hidden="true">P</span><div><strong id="filename"></strong><small id="filesize"></small></div><button id="remove-file" class="icon-button" aria-label="Seçilen dosyayı kaldır">×</button></div>
+          <p id="upload-error" class="error-message" role="alert" hidden></p>
+          <button id="start-button" class="primary-button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 6.3L21 12l-6.3 2.7L12 21l-2.7-6.3L3 12l6.3-2.7L12 3Z"/></svg><span id="start-label">Görselleştirmeyi iyileştir</span> <span aria-hidden="true">↗</span></button>
+          <p class="under-button">Orijinal dosyanız korunur. Yeni tasarım ayrı bir şablon olarak hazırlanır.</p>
+        </div>
+        <div id="processing-state" class="result-state" hidden aria-live="polite">
+          <div class="processing-emblem" aria-hidden="true"><span></span><span></span><span></span></div>
+          <h2>Görselleştirme iyileştiriliyor…</h2><p id="processing-message">Şablonunuz inceleniyor.</p>
+          <div class="indeterminate" role="progressbar" aria-label="Tasarım iyileştiriliyor"><span></span></div>
+          <div class="processing-details"><span id="processing-file"></span><span id="elapsed">00:00</span></div>
+          <p class="processing-note">Qwen tasarım üzerinde çalışırken bu sayfayı açık tutabilirsiniz.</p>
+        </div>
+        <div id="ready-state" class="result-state" hidden aria-live="polite">
+          <div class="success-emblem" aria-hidden="true">✓</div><h2>Görsel hazır</h2><p>Güncellenmiş Power BI şablonunuz indirilmeye hazır.</p>
+          <div class="result-facts"><div><strong id="page-count">—</strong><span>sayfa</span></div><div><strong id="visual-count">—</strong><span>görsel</span></div><div><strong id="kept-label">Korundu</strong><span id="kept-sub">analitik yapı</span></div></div>
+          <a id="download-button" class="primary-button" href="#" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12m-4-4 4 4 4-4M5 16v4h14v-4"/></svg>.pbit dosyasını indir</a>
+          <p id="model-note" class="validation-note" hidden></p><p class="validation-note">Dosya yapısı kontrol edildi. Son görünümü ve etkileşimleri Power BI Desktop’ta kontrol edin.</p>
+          <details id="design-decisions" class="design-decisions" hidden><summary>Tasarım kararlarını gör</summary><p>Grafik seçimi alan türlerine ve mevcut hesaplamalara dayanır. PBIT içinde gerçek veri satırları bulunmaz.</p><ul id="decision-list"></ul></details>
+          <button id="new-file" class="text-button">Başka bir şablon yükle</button>
+        </div>
+        <div id="error-state" class="result-state" hidden role="alert"><div class="failure-emblem" aria-hidden="true">!</div><h2>Tasarım tamamlanamadı</h2><p id="job-error"></p><button id="retry-button" class="primary-button">Tekrar dene</button><button id="change-file" class="text-button">Başka bir dosya seç</button></div>
+      </section>
+      <aside class="design-panel"><p class="eyebrow">YENİDEN TASARIM</p><h2>Önce anlam. <br>Sonra tasarım.</h2><div class="design-rule"></div><ul class="design-list"><li><span>01</span><div><strong>Amacına uygun grafik</strong><p>Alanların türüne ve hesaplamalara göre çubuk, çizgi veya uygun başka bir grafik.</p></div></li><li><span>02</span><div><strong>Özgür bir kompozisyon</strong><p>Yeni boyutlar, güçlü bir ana grafik ve baştan düzenlenen sayfalar.</p></div></li><li><span>03</span><div><strong>Premium bir bütünlük</strong><p>Karakterli renkler, net başlıklar ve tutarlı yüzeyler. Analitik yapı korunur.</p></div></li></ul><div class="privacy-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Zm-4 9 3 3 5-6"/></svg><p>Dosyanız bu bilgisayarda işlenir.<br>AI tasarımcı: <strong>Qwen3 8B</strong></p></div></aside>
+    </div>
+    <footer><span>Analitiği siz oluşturun. Tasarımı birlikte iyileştirelim.</span><span>AI UX DESIGNER <span class="footer-version">/ 01</span></span></footer>
+  </main>
+</body>
+</html>

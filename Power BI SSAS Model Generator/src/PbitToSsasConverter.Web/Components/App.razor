@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Convert Power BI templates into SSAS Tabular models with metadata validation and a detailed conversion report." />
+    <base href="/" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <div id="blazor-error-ui" role="alert">The connection was interrupted. <a href="/">Reload the converter</a> to reconnect.</div>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

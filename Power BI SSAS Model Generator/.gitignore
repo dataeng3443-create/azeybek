@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+**/TestResults/
+.vs/
+.idea/
+*.user
+*.suo
+.DS_Store
+temp/
+work/
+publish/
+.local-runtime

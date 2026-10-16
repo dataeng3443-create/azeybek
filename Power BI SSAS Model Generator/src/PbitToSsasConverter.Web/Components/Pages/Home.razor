@@ -1,0 +1,124 @@
+@page "/"
+@implements IDisposable
+@inject PbitToSsasConverter.Web.Services.Conversion.IModelConversionService Converter
+@inject PbitToSsasConverter.Web.Infrastructure.ConversionJobManager Jobs
+@inject Microsoft.Extensions.Options.IOptions<ConversionLimits> Limits
+
+<PageTitle>Power BI → SSAS Converter | SSAS Generator</PageTitle>
+<div class="workspace-heading">
+    <div><div class="eyebrow">MODEL MIGRATION WORKSPACE</div><h1>Power BI <span class="heading-arrow">→</span> SSAS Converter</h1><p>Convert a Power BI Template (.pbit) into an SSAS Tabular Model (.bim)</p></div>
+</div>
+<ol class="workflow" aria-label="Conversion workflow">
+    <li class="@(result is null && !processing ? "active" : "done")"><span>01</span> Upload template</li>
+    <li class="@(processing ? "active" : result is not null ? "done" : "")"><span>02</span> Convert &amp; validate</li>
+    <li class="@(result is not null ? "active" : "")"><span>03</span> Download model</li>
+</ol>
+<div class="workspace-grid">
+<section class="main-card" aria-label="Converter">
+<div hidden="@(processing || result is not null)">
+    <div class="card-heading"><div><h2>Your source model</h2><p>Start with a template exported from Power BI Desktop.</p></div><span class="step-label">STEP 01</span></div>
+    <div class="upload-zone @(file is not null ? "has-file" : "")">
+        <InputFile @key="inputKey" OnChange="SelectFile" accept=".pbit" aria-label="Select or drop a Power BI PBIT template" />
+        <div class="upload-icon" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V3m0 0L7 8m5-5 5 5M4 15v5a1 1 0 001 1h14a1 1 0 001-1v-5"/></svg></div>
+        @if (file is null)
+        { <h3>Drag &amp; Drop your .pbit file here</h3><p>or <span class="select-text">Select PBIT File</span></p><span class="file-hint">.PBIT ONLY <span>·</span> UP TO @(Limits.Value.MaxUploadBytes / 1024 / 1024) MB</span> }
+        else
+        { <h3>@file.Name</h3><p>Template selected <span class="selected-check">✓</span></p><span class="file-hint">DROP A NEW FILE TO REPLACE</span> }
+    </div>
+    @if (file is not null)
+    {
+        <dl class="file-details"><div><dt>File Name</dt><dd>@file.Name</dd></div><div><dt>File Size</dt><dd>@FormatSize(file.Size)</dd></div><div><dt>File Type</dt><dd>Power BI Template (.pbit)</dd></div></dl>
+    }
+    @if (error is not null) { <div class="alert alert-danger mt-3" role="alert">@error</div> }
+    <div class="target-section"><label for="target">Target Analysis Services version</label><div class="target-row"><select id="target" class="form-select" @bind="targetVersion"><option value="1200">SQL Server 2016 · Level 1200</option><option value="1500">SQL Server 2019 · Level 1500</option><option value="custom">Custom compatibility level</option></select><span class="target-tag">SSAS TABULAR</span></div>
+    @if (targetVersion == "custom") { <label class="custom-label" for="compatibility">Compatibility level</label><input id="compatibility" class="form-control" type="number" @bind="customLevel" /><small>Supported levels: 1200, 1400, 1500, 1600, 1700.</small> }
+    <p class="target-note">Your model will be checked against the selected compatibility level.</p></div>
+    <div class="action-row"><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 018 0v4"/></svg> Source files deleted after processing</span><button class="btn generate-button" disabled="@(file is null)" @onclick="Generate">Generate SSAS Model <span aria-hidden="true">→</span></button></div>
+</div>
+@if (processing)
+{
+    <div class="processing-header" role="status" aria-live="polite"><div class="spinner-border" aria-hidden="true"></div><h2>@(progress.Stage == "upload" ? "Uploading Power BI Template..." : "SSAS modeli hazırlanıyor...")</h2><p>@progress.Message</p></div>
+    <div class="progress-label"><span>CONVERSION PROGRESS</span><strong>@progress.Percentage%</strong></div>
+    <div class="progress" role="progressbar" aria-label="Conversion progress" aria-valuenow="@progress.Percentage" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width: @(progress.Percentage)%"></div></div>
+    <ol class="processing-stages">@foreach (var stage in stages) { <li class="@(progress.Percentage > stage.Percent ? "complete" : progress.Stage == stage.Key ? "current" : "")"><span>@(progress.Percentage > stage.Percent ? "✓" : progress.Stage == stage.Key ? "→" : "·")</span>@stage.Label</li> }</ol>
+    <button class="btn btn-outline-secondary" @onclick="Cancel" disabled="@cancelling">@(cancelling ? "Cancelling…" : "Cancel conversion")</button>
+}
+else if (result is not null)
+{
+    <div class="result-heading"><span class="result-icon @(result.Success ? "" : "failed")">@(result.Success ? "✓" : "!")</span><div><div class="eyebrow">@(result.Success ? "MODEL READY" : "CONVERSION STOPPED")</div><h2>@(result.Success ? "Conversion Completed" : "Model could not be generated")</h2><p>@(result.Success ? "SSAS Model Successfully Generated" : "Review the details below before trying again.")</p></div></div>
+    @foreach (var issue in result.Errors) { <div class="alert alert-danger" role="alert"><strong>@issue.Code</strong><br />@issue.Message</div> }
+    @if (error is not null) { <div class="alert alert-danger" role="alert">@error</div> }
+    <div class="statistics">@foreach (var stat in Stats(result.Statistics)) { <div><strong>@stat.Count</strong><span>@stat.Label</span></div> }</div>
+    <details class="warnings"><summary>@result.Warnings.Count(w => w.Severity == IssueSeverity.Warning) Warnings <span>View conversion details</span></summary><div>@if (result.Warnings.Count == 0) { <p>No conversion warnings.</p> }@foreach (var warning in result.Warnings) { <article><span class="warning-code">@warning.Severity · @warning.Code</span><strong>@warning.Object</strong><p>@warning.Message</p></article> }</div></details>
+    <div class="download-actions">
+        @if (result.Success && downloadToken is not null) { <a href="@($"downloads/{downloadToken}/model")" class="btn generate-button" download="Model.bim">↓ Download Model.bim</a> }
+        else { <button class="btn generate-button" disabled>Download Model.bim</button> }
+        @if (hasReport && downloadToken is not null) { <a href="@($"downloads/{downloadToken}/report")" class="btn btn-outline-secondary" download="conversion-report.json">Download Conversion Report</a> }
+    </div>
+    <p class="download-note">Downloads expire after @Limits.Value.DownloadRetentionMinutes minutes. Target server credentials and deployment should be checked separately.</p>
+    <button class="another-file" @onclick="Reset">← Convert Another File</button>
+}
+</section>
+<aside class="sidebar">
+    <section class="output-card"><span class="eyebrow">YOUR OUTPUT</span><div class="bim-icon">{<span>···</span>}</div><h2>Model.bim</h2><p>A Tabular model definition, ready for your Analysis Services project.</p><div class="output-chip">UTF-8 JSON <span>·</span> TOM VALIDATED</div><hr /><div class="destination-label">OPEN IN VISUAL STUDIO</div><ol><li>Analysis Services Tabular Project</li><li>Replace Model.bim</li><li><kbd>F7</kbd> View Code</li></ol></section>
+    <section class="included-card"><h3>The model comes with you</h3><ul><li>Tables, columns &amp; measures</li><li>DAX &amp; Power Query expressions</li><li>Relationships &amp; hierarchies</li><li>Roles, RLS &amp; perspectives</li></ul><p>Unsupported features are surfaced in a detailed conversion report.</p></section>
+    <div class="semantic-note"><span aria-hidden="true">ⓘ</span><p>Semantic models only. Report visuals and page layouts stay in Power BI.</p></div>
+</aside>
+</div>
+
+@code {
+    private IBrowserFile? file;
+    private string targetVersion = "1500";
+    private int customLevel = 1600;
+    private string? error, downloadToken;
+    private bool processing, cancelling, disposed, hasReport;
+    private Guid inputKey = Guid.NewGuid();
+    private ConversionResult? result;
+    private ConversionProgress progress = new(0, "upload", "Uploading Power BI Template...");
+    private CancellationTokenSource? cancellation;
+    private static readonly (string Key, int Percent, string Label)[] stages = [
+        ("upload", 0, "PBIT file uploaded"), ("package", 10, "Reading Power BI package"), ("semantic", 20, "Extracting semantic model"),
+        ("tables", 30, "Extracting tables"), ("columns", 35, "Extracting columns"), ("measures", 40, "Extracting measures"),
+        ("relationships", 45, "Extracting relationships"), ("partitions", 50, "Extracting Power Query / partitions"), ("sources", 55, "Extracting data sources"),
+        ("normalize", 60, "Converting Power BI metadata"), ("build", 70, "Building SSAS Tabular Model"), ("validate", 85, "Validating Model.bim"), ("output", 95, "Generating output")];
+    private void SelectFile(InputFileChangeEventArgs args)
+    {
+        error = null; file = null;
+        if (args.FileCount != 1) { error = "Select one .pbit file."; return; }
+        var selected = args.File;
+        if (!Path.GetExtension(selected.Name).Equals(".pbit", StringComparison.OrdinalIgnoreCase)) { error = "Only Power BI Template (.pbit) files are accepted."; return; }
+        if (selected.Size == 0 || selected.Size > Limits.Value.MaxUploadBytes) { error = "The file is empty or exceeds the upload size limit."; return; }
+        file = selected;
+    }
+    private async Task Generate()
+    {
+        if (processing || file is null) return;
+        var options = new ConversionOptions { CompatibilityLevel = targetVersion == "custom" ? customLevel : int.Parse(targetVersion) };
+        try { PbitToSsasConverter.Web.Services.Ssas.TomValidator.ValidateOptions(options); }
+        catch (ConversionException ex) { error = ex.Message; return; }
+        error = null; processing = true; cancelling = false;
+        cancellation = new();
+        var token = cancellation.Token;
+        var selected = file;
+        var updates = new Progress<ConversionProgress>(value => { if (!disposed) _ = InvokeAsync(() => { progress = value; StateHasChanged(); }); });
+        try
+        {
+            await using var stream = selected.OpenReadStream(Limits.Value.MaxUploadBytes, token);
+            var converted = await Converter.ConvertAsync(stream, selected.Name, options, updates, token);
+            hasReport = converted.ConversionReport is not null;
+            result = new ConversionResult { Success = converted.Success, Statistics = converted.Statistics, Warnings = converted.Warnings, Errors = converted.Errors };
+            // Keep large output buffers only in the bounded, expiring download store.
+            if (!disposed) downloadToken = Jobs.Retain(converted);
+        }
+        catch (OperationCanceledException) { error = "Conversion cancelled."; }
+        catch (ConversionException ex) { error = ex.Message; }
+        catch (IOException) { error = "The file upload was interrupted. Please select the file again."; }
+        catch (Exception) { error = "The conversion could not be completed. Please try again."; }
+        finally { processing = false; cancellation.Dispose(); cancellation = null; }
+    }
+    private void Cancel() { cancelling = true; cancellation?.Cancel(); }
+    private void Reset() { Jobs.Remove(downloadToken); downloadToken = null; result = null; file = null; error = null; hasReport = false; inputKey = Guid.NewGuid(); progress = new(0, "upload", "Uploading Power BI Template..."); }
+    private static string FormatSize(long bytes) => bytes >= 1024 * 1024 ? $"{bytes / 1024d / 1024d:N2} MB" : $"{bytes / 1024d:N1} KB";
+    private static (int Count, string Label)[] Stats(ConversionStatistics s) => [(s.Tables, "Tables"), (s.Columns, "Columns"), (s.Measures, "Measures"), (s.Relationships, "Relationships"), (s.Partitions, "Partitions"), (s.DataSources, "Data Sources")];
+    public void Dispose() { disposed = true; cancellation?.Cancel(); }
+}

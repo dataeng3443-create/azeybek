@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BI Skorlama</title>
+<style>
+:root {
+    --bg: #0a1324;
+    --panel: #111c31;
+    --panel-2: #16233c;
+    --line: #22314f;
+    --text: #e5eefc;
+    --muted: #93a7c6;
+    --cyan: #32d3ff;
+    --violet: #7c5cff;
+    --good: #2ecc71;
+    --warning: #f39c12;
+    --critical: #ff5d5d;
+    --radius-lg: 20px;
+    --radius-sm: 10px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 28px 16px 64px; }
+
+/* ---------- üst satır */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { font-weight: 700; letter-spacing: -0.01em; font-size: 1.05rem; }
+.ai-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line);
+    font-size: 0.86rem; color: var(--muted); background: var(--panel);
+}
+.ai-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.ai-pill.ok .dot { background: var(--good); }
+.ai-pill.off .dot { background: var(--warning); }
+
+h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.12; letter-spacing: -0.03em; margin: 44px 0 10px; font-weight: 800; }
+.lede { color: var(--muted); margin: 0 0 28px; max-width: 60ch; }
+
+/* ---------- bırakma alanı */
+.drop {
+    position: relative;
+    border: 1.5px dashed #2f4470;
+    border-radius: var(--radius-lg);
+    background: var(--panel);
+    padding: 28px 20px 26px;
+    text-align: center;
+    transition: border-color .2s, background-color .2s;
+}
+.drop.dragging { border-color: var(--cyan); border-style: solid; background: #0f2240; }
+.schema { width: 100%; max-width: 420px; height: auto; display: block; margin: 0 auto 6px; }
+.schema .rel { stroke: #3a5384; stroke-width: 1.5; fill: none; }
+.schema .tbl rect { fill: var(--panel-2); stroke: #3a5384; stroke-width: 1.2; }
+.schema .tbl text { fill: var(--muted); font: 11px ui-monospace, "SF Mono", Menlo, monospace; }
+.schema .fact rect { stroke: var(--violet); }
+.schema .fact text { fill: #cfc4ff; }
+.drop.dragging .schema .rel { stroke: var(--cyan); stroke-dasharray: 6 6; animation: flow .7s linear infinite; }
+.drop.dragging .schema .tbl rect { stroke: var(--cyan); }
+@keyframes flow { to { stroke-dashoffset: -12; } }
+
+.drop-title { font-size: 1.15rem; font-weight: 650; margin: 6px 0 4px; }
+.drop-sub { color: var(--muted); margin: 0 0 16px; font-size: 0.95rem; }
+.btn {
+    appearance: none; border: 0; cursor: pointer;
+    font: inherit; font-weight: 650;
+    padding: 11px 20px; border-radius: var(--radius-sm);
+    background: var(--cyan); color: #04121f;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+.btn:focus-visible, .switch input:focus-visible + .track, a:focus-visible {
+    outline: 2px solid var(--cyan); outline-offset: 3px;
+}
+input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+/* ---------- seçenekler */
+.options { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin: 16px 2px 0; flex-wrap: wrap; }
+.switch { display: inline-flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
+.switch input { position: absolute; opacity: 0; }
+.track { width: 40px; height: 24px; border-radius: 999px; background: #2a3a5c; position: relative; flex: none; transition: background .2s; }
+.track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.switch input:checked + .track { background: var(--violet); }
+.switch input:checked + .track::after { transform: translateX(16px); }
+.switch input:disabled + .track { opacity: .45; }
+.switch-label b { display: block; font-weight: 600; }
+.switch-label span { color: var(--muted); font-size: 0.88rem; }
+.hint { color: var(--muted); font-size: 0.86rem; max-width: 34ch; margin: 0; }
+
+/* ---------- ilerleme */
+.progress { display: none; text-align: left; }
+.progress.show { display: block; }
+.progress-file { font-weight: 650; margin: 0 0 18px; word-break: break-word; }
+.steps { list-style: none; margin: 0; padding: 0; }
+.step { display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 10px 0; color: var(--muted); }
+.step + .step { border-top: 1px solid var(--line); }
+.step .mark {
+    width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #3a5384;
+    display: grid; place-items: center; font-size: 0.75rem; font-weight: 700;
+}
+.step.active { color: var(--text); }
+.step.active .mark { border-color: var(--cyan); border-top-color: transparent; animation: spin .9s linear infinite; }
+.step.done { color: var(--text); }
+.step.done .mark { background: var(--cyan); border-color: var(--cyan); color: #04121f; }
+.step.skipped .mark { border-style: dashed; }
+.step-title { font-weight: 600; }
+.step-detail { font-size: 0.9rem; color: var(--muted); }
+.step-detail .score { font-weight: 700; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error {
+    display: none; margin-top: 18px; padding: 14px 16px; border-radius: var(--radius-sm);
+    background: rgba(255,93,93,.1); border: 1px solid rgba(255,93,93,.35); color: #ffd6d6; text-align: left;
+}
+.error.show { display: block; }
+.error p { margin: 0 0 12px; }
+
+/* ---------- geçmiş */
+.history { margin-top: 48px; }
+.history h2 { font-size: 1.1rem; margin: 0 0 12px; letter-spacing: -0.01em; }
+.history-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.history-list li { border-bottom: 1px solid var(--line); }
+.history-list a {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center;
+    padding: 13px 4px; color: var(--text); text-decoration: none;
+}
+.history-list a:hover { background: rgba(255,255,255,.03); }
+.h-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-date { color: var(--muted); font-size: 0.88rem; white-space: nowrap; }
+.h-score { font-weight: 800; font-variant-numeric: tabular-nums; min-width: 3.6em; text-align: right; }
+.h-score.good { color: var(--good); }
+.h-score.warning { color: var(--warning); }
+.h-score.critical { color: var(--critical); }
+.empty { color: var(--muted); margin: 0; padding: 14px 0; }
+
+@media (max-width: 560px) {
+    .history-list a { grid-template-columns: 1fr auto; }
+    .h-date { grid-column: 1; grid-row: 2; }
+    .h-score { grid-row: 1 / span 2; grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .drop.dragging .schema .rel, .step.active .mark { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <header class="top">
+        <div class="brand">BI Skorlama</div>
+        <div class="ai-pill" id="aiPill" role="status"><span class="dot"></span><span id="aiPillText">AI durumu kontrol ediliyor</span></div>
+    </header>
+
+    <h1>Power BI raporunu skorla</h1>
+    <p class="lede">Şablon dosyasını ekle; veri modeli, sorgular, DAX ve görseller incelenip 100 üzerinden puanlansın ve düzeltme planı çıkarılsın.</p>
+
+    <section class="drop" id="drop" aria-label="Rapor dosyası yükleme alanı">
+        <div id="pick">
+            <svg class="schema" viewBox="0 0 420 170" aria-hidden="true">
+                <path class="rel" d="M210 85 L78 34"/>
+                <path class="rel" d="M210 85 L342 34"/>
+                <path class="rel" d="M210 85 L78 136"/>
+                <path class="rel" d="M210 85 L342 136"/>
+                <g class="tbl"><rect x="28" y="18" width="100" height="32" rx="7"/><text x="78" y="38" text-anchor="middle">Tarih</text></g>
+                <g class="tbl"><rect x="292" y="18" width="100" height="32" rx="7"/><text x="342" y="38" text-anchor="middle">Müşteri</text></g>
+                <g class="tbl"><rect x="28" y="120" width="100" height="32" rx="7"/><text x="78" y="140" text-anchor="middle">Ürün</text></g>
+                <g class="tbl"><rect x="292" y="120" width="100" height="32" rx="7"/><text x="342" y="140" text-anchor="middle">Bölge</text></g>
+                <g class="tbl fact"><rect x="150" y="66" width="120" height="38" rx="8"/><text x="210" y="89" text-anchor="middle">Fact</text></g>
+            </svg>
+            <p class="drop-title">.pbit dosyasını buraya bırak</p>
+            <p class="drop-sub">ya da bilgisayarından seç</p>
+            <button class="btn" type="button" id="chooseBtn">Rapor ekle</button>
+            <input type="file" id="fileInput" accept=".pbit">
+        </div>
+
+        <div class="progress" id="progress" aria-live="polite">
+            <p class="progress-file" id="progressFile"></p>
+            <ol class="steps">
+                <li class="step" data-step="upload">
+                    <span class="mark">1</span>
+                    <div><div class="step-title">Dosya okunuyor</div><div class="step-detail" data-detail></div></div>
+                </li>
+                <li class="step" data-step="rules">
+                    <span class="mark">2</span>
+                    <div><div class="step-title">Kurallar çalışıyor</div><div class="step-detail" data-detail>Model, ilişkiler, sorgular, DAX ve görseller</div></div>
+                </li>
+                <li class="step" data-step="ai">
+                    <span class="mark">3</span>
+                    <div><div class="step-title">AI yorumu yazılıyor</div><div class="step-detail" data-detail></div></div>
+                </li>
+                <li class="step" data-step="done">
+                    <span class="mark">4</span>
+                    <div><div class="step-title">Rapor açılıyor</div><div class="step-detail" data-detail></div></div>
+                </li>
+            </ol>
+        </div>
+
+        <div class="error" id="error" role="alert">
+            <p id="errorText"></p>
+            <button class="btn secondary" type="button" id="retryBtn">Başka dosya seç</button>
+        </div>
+    </section>
+
+    <div class="options">
+        <label class="switch">
+            <input type="checkbox" id="aiToggle" checked>
+            <span class="track"></span>
+            <span class="switch-label"><b>AI yorumu ekle</b><span id="aiToggleSub">Bulgular yerel modelle açıklanır</span></span>
+        </label>
+        <p class="hint">Elinde .pbix varsa Power BI Desktop'ta Dosya &gt; Dışarı aktar &gt; Power BI şablonu ile .pbit olarak kaydet.</p>
+    </div>
+
+    <section class="history" aria-labelledby="historyTitle">
+        <h2 id="historyTitle">Önceki analizler</h2>
+        <ul class="history-list" id="historyList"></ul>
+    </section>
+</div>
+
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const drop = $("drop"), pick = $("pick"), progress = $("progress");
+    const fileInput = $("fileInput"), aiToggle = $("aiToggle");
+    let busy = false;
+    let aiAvailable = false;
+
+    // ---------------------------------------------------------------- AI durumu
+    fetch("/api/status").then(r => r.json()).then(s => {
+        aiAvailable = s.ai_available;
+        const pill = $("aiPill");
+        if (s.ai_available) {
+            pill.classList.add("ok");
+            $("aiPillText").textContent = s.model + " hazır";
+            $("aiToggleSub").textContent = s.model + " ile, yaklaşık 1 dakika";
+        } else {
+            pill.classList.add("off");
+            $("aiPillText").textContent = "AI kapalı";
+            pill.title = s.ai_error || "";
+            aiToggle.checked = false;
+            aiToggle.disabled = true;
+            $("aiToggleSub").textContent = shortAiError(s.ai_error, s.model);
+        }
+    }).catch(() => { $("aiPillText").textContent = "Sunucuya ulaşılamadı"; });
+
+    function shortAiError(err, model) {
+        err = err || "";
+        if (err.includes("ulaşılamadı")) return "Ollama çalışmıyor. Uygulamayı açıp sayfayı yenile.";
+        if (err.includes("bulunamadı")) return model + " kurulu değil: ollama pull " + model;
+        if (err.includes("paketi")) return "Python paketi eksik: pip3 install ollama";
+        return "AI şu an kullanılamıyor; analiz sadece kurallarla yapılır.";
+    }
+
+    // ---------------------------------------------------------------- geçmiş
+    function scoreClass(score) {
+        if (score >= 80) return "good";
+        if (score >= 60) return "warning";
+        return "critical";
+    }
+    // Rapordaki değerle birebir aynı göster (50.5 -> "50,5")
+    function formatScore(value) {
+        return Number(value).toLocaleString("tr-TR", { maximumFractionDigits: 1 });
+    }
+    function formatDate(iso) {
+        const d = new Date(iso);
+        if (isNaN(d)) return "";
+        return d.toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    }
+    function loadHistory() {
+        fetch("/api/history").then(r => r.json()).then(items => {
+            const list = $("historyList");
+            list.innerHTML = "";
+            if (!items.length) {
+                const li = document.createElement("li");
+                li.innerHTML = '<p class="empty">Henüz analiz yok. İlk raporunu yukarıdan ekle.</p>';
+                list.appendChild(li);
+                return;
+            }
+            items.slice(0, 20).forEach(item => {
+                const li = document.createElement("li");
+                const a = document.createElement("a");
+                a.href = item.report_url;
+                const name = document.createElement("span");
+                name.className = "h-name";
+                name.textContent = item.file;
+                const date = document.createElement("span");
+                date.className = "h-date";
+                date.textContent = formatDate(item.generated_at) + (item.ai_used ? "" : ", AI'sız");
+                const score = document.createElement("span");
+                score.className = "h-score " + scoreClass(item.total_score);
+                score.textContent = formatScore(item.total_score);
+                score.setAttribute("aria-label", "Skor " + item.total_score + " / 100");
+                a.append(name, date, score);
+                li.appendChild(a);
+                list.appendChild(li);
+            });
+        });
+    }
+    loadHistory();
+
+    // ---------------------------------------------------------------- dosya seçimi
+    $("chooseBtn").addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => { if (fileInput.files[0]) start(fileInput.files[0]); });
+    $("retryBtn").addEventListener("click", reset);
+
+    // Alanın dışına bırakılan dosya tarayıcıda açılmasın
+    ["dragover", "drop"].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
+    let dragDepth = 0;
+    drop.addEventListener("dragenter", e => { if (busy) return; dragDepth++; drop.classList.add("dragging"); });
+    drop.addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) drop.classList.remove("dragging"); });
+    drop.addEventListener("drop", e => {
+        dragDepth = 0;
+        drop.classList.remove("dragging");
+        if (busy) return;
+        const file = e.dataTransfer.files[0];
+        if (file) start(file);
+    });
+
+    // ---------------------------------------------------------------- akış
+    function setStep(name, state, detail) {
+        const el = progress.querySelector('[data-step="' + name + '"]');
+        el.classList.remove("active", "done", "skipped");
+        if (state) el.classList.add(state);
+        const number = String(["upload", "rules", "ai", "done"].indexOf(name) + 1);
+        // Dönen halkanın içinde rakam da dönmesin: aktif adımda boş bırak
+        el.querySelector(".mark").textContent = state === "done" ? "✓" : (state === "active" ? "" : number);
+        if (detail !== undefined) el.querySelector("[data-detail]").innerHTML = detail;
+    }
+
+    function showError(message) {
+        busy = false;
+        progress.classList.remove("show");
+        pick.style.display = "none";
+        $("errorText").textContent = message;
+        $("error").classList.add("show");
+    }
+
+    function reset() {
+        busy = false;
+        fileInput.value = "";
+        $("error").classList.remove("show");
+        progress.classList.remove("show");
+        pick.style.display = "";
+        ["upload", "rules", "ai", "done"].forEach(s => setStep(s, null));
+    }
+
+    function start(file) {
+        if (!/\.pbit$/i.test(file.name)) {
+            const pbix = /\.pbix$/i.test(file.name);
+            showError(pbix
+                ? "Bu bir .pbix dosyası. Power BI Desktop'ta Dosya > Dışarı aktar > Power BI şablonu ile .pbit olarak kaydedip onu ekle."
+                : "Sadece Power BI şablon dosyaları (.pbit) analiz edilebilir.");
+            return;
+        }
+        busy = true;
+        const useAi = aiToggle.checked && aiAvailable;
+        $("error").classList.remove("show");
+        pick.style.display = "none";
+        progress.classList.add("show");
+        $("progressFile").textContent = file.name;
+        setStep("upload", "active", "");
+        setStep("ai", useAi ? null : "skipped", useAi ? "" : "İstenmedi");
+
+        fetch("/api/analyze?ai=" + (useAi ? "1" : "0"), {
+            method: "POST",
+            headers: { "Content-Type": "application/octet-stream", "X-Filename": encodeURIComponent(file.name) },
+            body: file,
+        })
+        .then(r => r.json().then(body => ({ ok: r.ok, body })))
+        .then(({ ok, body }) => {
+            if (!ok) throw new Error(body.error || "Dosya gönderilemedi.");
+            poll(body.job_id, useAi);
+        })
+        .catch(err => showError(err.message));
+    }
+
+    function poll(jobId, useAi) {
+        fetch("/api/jobs/" + jobId).then(r => r.json()).then(job => {
+            if (job.stage === "error") return showError(job.message);
+
+            if (job.stage !== "upload") setStep("upload", "done", (job.file ? "" : ""));
+            if (job.stage === "rules") setStep("rules", "active");
+            if (job.score !== undefined) {
+                setStep("rules", "done",
+                    '<span class="score">' + formatScore(job.score) + "/100</span>, " + job.findings + " puan kıran bulgu");
+            }
+            if (useAi && job.stage === "ai") {
+                setStep("ai", "active", job.model + " yazıyor, " + Math.round(job.ai_elapsed || 0) + " sn");
+            }
+            if (job.stage === "done") {
+                if (useAi) setStep("ai", job.ai_warning ? "skipped" : "done", job.ai_warning ? "Yazılamadı; rapor kurallarla hazırlandı" : "");
+                setStep("done", "active");
+                window.location.href = job.report_url;
+                return;
+            }
+            setTimeout(() => poll(jobId, useAi), 700);
+        }).catch(() => setTimeout(() => poll(jobId, useAi), 1500));
+    }
+})();
+</script>
+</body>
+</html>

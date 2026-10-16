@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AnalysisServices" Version="19.114.12" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,2 @@
+# AI yorumu için (opsiyonel). Kurulu değilse analiz yalnızca kural tabanlı çalışır.
+ollama>=0.3

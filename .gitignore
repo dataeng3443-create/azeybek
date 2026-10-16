@@ -1,7 +1,32 @@
-.env
-.venv/
-__pycache__/
-.pytest_cache/
-*.py[cod]
+# --- Genel ---
 .DS_Store
+.env
+.vs/
+.idea/
+.vscode/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
 .ollama.log
+
+# --- .NET (Power BI SSAS Model Generator) ---
+**/bin/
+**/obj/
+**/TestResults/
+*.user
+*.suo
+
+# --- Calisma zamani dosyalari, loglar, yedekler ---
+.runtime/
+.local-runtime
+*.log
+_backup_pre_refactor/
+
+# --- AI_BI_Architect: analiz edilen raporlarin ciktilari ---
+AI_BI_Architect/reports/
+AI_BI_Architect/*_report.html
+AI_BI_Architect/FINAL_REPORT.html
