@@ -11,4 +11,6 @@ Power BI ve iş zekâsı (BI) odaklı, yerel LLM (Ollama) destekli dört prototi
 
 Her projenin kurulum ve çalıştırma adımları kendi klasöründeki README / başlatma dosyasındadır.
 
+**Sunum:** Dört projenin problem, amaç, çalışma şekli ve arayüzlerini anlatan 16 slaytlık tanıtım: [`AI_Vibe_Coding_Projeleri_Sunum.pptx`](AI_Vibe_Coding_Projeleri_Sunum.pptx)
+
 > Gizli ayarlar (`.env`), sanal ortamlar, derleme çıktıları ve analiz edilen raporların çıktıları depoya dahil edilmez (bkz. `.gitignore`).
