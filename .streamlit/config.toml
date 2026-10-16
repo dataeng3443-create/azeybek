@@ -1,0 +1,12 @@
+# Main area: light theme (matches the app's light dashboard design).
+[theme]
+base = "light"
+backgroundColor = "#F7F8FC"
+secondaryBackgroundColor = "#EEF2FF"
+textColor = "#172554"
+
+# Sidebar: dark navy panel with its own widget colors, so inputs and buttons stay readable.
+[theme.sidebar]
+backgroundColor = "#111B32"
+secondaryBackgroundColor = "#1D2B4B"
+textColor = "#EEF2FF"
