@@ -13,7 +13,7 @@ venv/
 .pytest_cache/
 .ollama.log
 
-# --- .NET (Power BI SSAS Model Generator) ---
+# --- .NET (SSAS_Generator) ---
 **/bin/
 **/obj/
 **/TestResults/
@@ -26,7 +26,7 @@ venv/
 *.log
 _backup_pre_refactor/
 
-# --- AI_BI_Architect: analiz edilen raporlarin ciktilari ---
-AI_BI_Architect/reports/
-AI_BI_Architect/*_report.html
-AI_BI_Architect/FINAL_REPORT.html
+# --- BI_Skorlama: analiz edilen raporlarin ciktilari ---
+BI_Skorlama/reports/
+BI_Skorlama/*_report.html
+BI_Skorlama/FINAL_REPORT.html
